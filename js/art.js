@@ -468,24 +468,24 @@ export function drawExit(ctx, e, t, open) {
   ctx.restore();
 }
 
+// Flat warning spikes, the way a puzzle platformer draws a hazard: clean
+// triangles on a base strip. No arcs, no glow, no animation.
 export function drawTrap(ctx, x, y, t) {
+  const base = y + TILE;
   ctx.save();
-  ctx.fillStyle = "#3a2350";
-  ctx.fillRect(x, y + TILE - 10, TILE, 10);
-  const spark = 0.5 + Math.sin(t * 9 + x * 0.1) * 0.5;
-  ctx.strokeStyle = `rgba(255,90,140,${0.55 + spark * 0.45})`;
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = "round";
-  for (let i = 0; i < 4; i++) {
-    const sx = x + 5 + i * 10;
+  ctx.fillStyle = "#8E2F44";
+  ctx.fillRect(x, base - 6, TILE, 6);
+  ctx.fillStyle = "#E2415C";
+  const n = 3, w = TILE / n;
+  for (let i = 0; i < n; i++) {
+    const bx = x + i * w;
     ctx.beginPath();
-    ctx.moveTo(sx, y + TILE - 10);
-    ctx.lineTo(sx + 4, y + TILE - 18 - spark * 4);
-    ctx.lineTo(sx - 2, y + TILE - 24 - spark * 5);
-    ctx.stroke();
+    ctx.moveTo(bx + 1, base - 5);
+    ctx.lineTo(bx + w / 2, base - 5 - 18);
+    ctx.lineTo(bx + w - 1, base - 5);
+    ctx.closePath();
+    ctx.fill();
   }
-  ctx.fillStyle = `rgba(255,120,160,${0.2 + spark * 0.2})`;
-  ctx.fillRect(x, y + TILE - 26, TILE, 16);
   ctx.restore();
 }
 
