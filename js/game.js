@@ -383,6 +383,20 @@ export class Game {
 
     this.docs.forEach((d) => d.update(dt, world, p, this.fx));
 
+    // keep them out of each other — two docs merged into one blob looks broken
+    for (let i = 0; i < this.docs.length; i++) {
+      for (let k = i + 1; k < this.docs.length; k++) {
+        const a = this.docs[i], b = this.docs[k];
+        if (Math.abs(a.y - b.y) > 40) continue;
+        const gap = Math.abs(a.cx - b.cx), want = (a.w + b.w) / 2 + 6;
+        if (gap >= want) continue;
+        const push = (want - gap) / 2;
+        const dir = Math.sign(a.cx - b.cx) || 1;
+        a.x += dir * push;
+        b.x -= dir * push;
+      }
+    }
+
     const chasing = this.docs.some((d) => d.state === "chase");
     audio.tense = chasing;
     p.scared = chasing && !p.morphed ? 0.3 : p.scared;

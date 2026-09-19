@@ -74,8 +74,8 @@ export function drawLamput(ctx, p, t) {
 
   const j = (p.jiggle || 0) * Math.sin(t * 24) * 0.19;
   const sq = p.squash * (1 - j);
-  const rx = (p.w / 2 + 4) * (1 / sq) * (1 + j * 0.5);
-  const ry = (p.h / 2 + 4) * sq;
+  const rx = (p.w / 2 + 1) * (1 / sq) * (1 + j * 0.35);
+  const ry = (p.h / 2 + 3) * sq;
   const face = p.facing;
 
   // one flat colour per form, plus a darker tone used only for thin line work
@@ -111,12 +111,12 @@ export function drawLamput(ctx, p, t) {
   // little nub arms, drawn behind so they read as part of the same mass
   ctx.fillStyle = sk.body;
   for (const sgn of [-1, 1]) {
-    const ax = cx + sgn * rx * 0.92, ay = cy + ry * 0.24;
+    const ax = cx + sgn * rx * 0.72, ay = cy + ry * 0.24;
     ctx.save();
     ctx.translate(ax, ay);
     ctx.rotate(sgn * (0.5 + Math.sin(t * 2.4 + sgn) * 0.14));
     ctx.beginPath();
-    ctx.ellipse(0, 0, rx * 0.34, ry * 0.19, 0, 0, TAU);
+    ctx.ellipse(0, 0, rx * 0.26, ry * 0.17, 0, 0, TAU);
     ctx.fill();
     ctx.restore();
   }
@@ -508,6 +508,33 @@ export function drawLaserBeam(ctx, x, y1, y2, t) {
 }
 
 export function drawLift(ctx, p) {
+  // the rail: shows where this lift travels, and which way
+  if (p.range) {
+    const horiz = p.axis === "x";
+    const cx = p.ox + p.w / 2, cy = p.oy + p.h / 2;
+    const a = horiz ? { x: cx - p.range, y: cy } : { x: cx, y: cy - p.range };
+    const b = horiz ? { x: cx + p.range, y: cy } : { x: cx, y: cy + p.range };
+    ctx.save();
+    ctx.strokeStyle = "rgba(157,127,220,0.35)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 7]);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(157,127,220,0.55)";
+    for (const [end, dir] of [[a, -1], [b, 1]]) {
+      ctx.beginPath();
+      if (horiz) {
+        ctx.moveTo(end.x + dir * 8, end.y);
+        ctx.lineTo(end.x, end.y - 6); ctx.lineTo(end.x, end.y + 6);
+      } else {
+        ctx.moveTo(end.x, end.y + dir * 8);
+        ctx.lineTo(end.x - 6, end.y); ctx.lineTo(end.x + 6, end.y);
+      }
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   ctx.save();
   ctx.fillStyle = "#6d4fa8";
   roundRect(ctx, p.x, p.y, p.w, p.h, 6); ctx.fill();
@@ -518,272 +545,6 @@ export function drawLift(ctx, p) {
   ctx.restore();
 }
 
-// ------------------------------------------------------------------- boss ---
-export function drawBoss(ctx, b, t) {
-  if (b.dead) return;
-  const cx = b.cx, y = b.y;
-  const hot = b.vulnerable;
-  const flash = b.flash > 0 && Math.floor(t * 30) % 2;
-
-  ctx.save();
-  if (b.state === "dying") {
-    ctx.translate(Math.sin(t * 40) * 3, 0);
-    ctx.globalAlpha = 0.85;
-  }
-
-  // hover shadow on the floor
-  ctx.globalAlpha *= 0.25;
-  ctx.fillStyle = "#000";
-  ctx.beginPath();
-  ctx.ellipse(cx, 522, b.w * 0.42, 9, 0, 0, TAU);
-  ctx.fill();
-  ctx.globalAlpha = b.state === "dying" ? 0.85 : 1;
-
-  // ---- suction hose + nozzle ----
-  const nx = b.nozzleX, ny = b.nozzleY;
-  ctx.strokeStyle = "#4a4470";
-  ctx.lineWidth = 15;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(cx, y + b.h - 10);
-  ctx.quadraticCurveTo(cx + Math.sin(t * 2) * 8, y + b.h + 6, nx, ny - 6);
-  ctx.stroke();
-  ctx.strokeStyle = "#5f588c";
-  ctx.lineWidth = 9;
-  ctx.stroke();
-
-  ctx.fillStyle = hot ? "#5a5480" : "#7a6fb0";
-  ctx.beginPath();
-  ctx.moveTo(nx - 20, ny + 16);
-  ctx.lineTo(nx + 20, ny + 16);
-  ctx.lineTo(nx + 10, ny - 6);
-  ctx.lineTo(nx - 10, ny - 6);
-  ctx.closePath();
-  ctx.fill();
-
-  // ---- charging / sucking funnel ----
-  if (b.state === "telegraph") {
-    const r = 34 + b.charge * 26;
-    ctx.globalAlpha = 0.35 + b.charge * 0.5;
-    ctx.strokeStyle = "#ffd84d";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(nx, ny + 12, r * (1 - b.charge * 0.55), 0, TAU);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  if (b.state === "suck") {
-    const reach = 360;
-    const spread = Math.tan(0.62) * reach;
-    const g = ctx.createLinearGradient(nx, ny, nx, ny + reach);
-    g.addColorStop(0, "rgba(120,220,255,0.42)");
-    g.addColorStop(1, "rgba(120,220,255,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(nx - 12, ny + 10);
-    ctx.lineTo(nx + 12, ny + 10);
-    ctx.lineTo(nx + spread, ny + reach);
-    ctx.lineTo(nx - spread, ny + reach);
-    ctx.closePath();
-    ctx.fill();
-    // inrushing streaks
-    ctx.strokeStyle = "rgba(200,245,255,0.6)";
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 9; i++) {
-      const p = ((t * 1.7 + i / 9) % 1);
-      const d = reach * (1 - p);
-      const off = (i / 9 - 0.5) * 2 * Math.tan(0.62) * d;
-      ctx.globalAlpha = p * 0.8;
-      ctx.beginPath();
-      ctx.moveTo(nx + off, ny + d);
-      ctx.lineTo(nx + off * 0.78, ny + d - 22);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  // ---- chassis ----
-  ctx.fillStyle = flash ? "#ffffff" : hot ? "#6b4a5e" : "#4a4470";
-  roundRect(ctx, b.x, y, b.w, b.h, 16);
-  ctx.fill();
-  ctx.strokeStyle = flash ? "#fff" : "#2e2a4a";
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  ctx.fillStyle = flash ? "#ffffff" : hot ? "#8a5f73" : "#5f588c";
-  roundRect(ctx, b.x + 8, y + 7, b.w - 16, b.h * 0.42, 11);
-  ctx.fill();
-
-  // rivets
-  ctx.fillStyle = "rgba(0,0,0,0.25)";
-  for (let i = 0; i < 6; i++) {
-    ctx.beginPath();
-    ctx.arc(b.x + 18 + i * 23, y + b.h - 12, 3, 0, TAU);
-    ctx.fill();
-  }
-
-  // hover jets
-  ctx.fillStyle = hot ? "#ff8a5a" : "#7fe6ff";
-  for (const sx of [b.x + 24, b.x + b.w - 24]) {
-    ctx.globalAlpha = 0.55 + Math.sin(t * 14 + sx) * 0.25;
-    ctx.beginPath();
-    ctx.moveTo(sx - 9, y + b.h);
-    ctx.lineTo(sx + 9, y + b.h);
-    ctx.lineTo(sx, y + b.h + 20 + Math.sin(t * 18 + sx) * 5);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-
-  // warning lamp
-  const lampOn = b.state === "telegraph" || b.state === "suck";
-  ctx.fillStyle = lampOn && Math.floor(t * 9) % 2 ? "#ff4d6d" : "#5a3050";
-  ctx.beginPath();
-  ctx.arc(b.x + b.w - 18, y + 16, 6, 0, TAU);
-  ctx.fill();
-
-  // ---- the specimen jar / core on top ----
-  const core = b.coreBox();
-  const ccx = core.x + core.w / 2, ccy = core.y + core.h / 2;
-  // mounting struts
-  ctx.strokeStyle = "#2e2a4a";
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.moveTo(ccx - 18, core.y + core.h); ctx.lineTo(ccx - 12, y + 4);
-  ctx.moveTo(ccx + 18, core.y + core.h); ctx.lineTo(ccx + 12, y + 4);
-  ctx.stroke();
-
-  if (hot) {
-    // shielding retracts and the core glows — the window to strike
-    const pulse = 0.6 + Math.sin(t * 12) * 0.4;
-    ctx.globalAlpha = 0.5 * pulse;
-    const halo = ctx.createRadialGradient(ccx, ccy, 4, ccx, ccy, 56);
-    halo.addColorStop(0, "rgba(255,90,60,0.95)");
-    halo.addColorStop(1, "rgba(255,90,60,0)");
-    ctx.fillStyle = halo;
-    ctx.beginPath(); ctx.arc(ccx, ccy, 56, 0, TAU); ctx.fill();
-    ctx.globalAlpha = 1;
-
-    ctx.fillStyle = "#3a2350";
-    roundRect(ctx, core.x - 4, core.y - 4, core.w + 8, core.h + 8, 10); ctx.fill();
-    const cg = ctx.createRadialGradient(ccx - 6, ccy - 8, 2, ccx, ccy, core.w * 0.7);
-    cg.addColorStop(0, "#fff3c4");
-    cg.addColorStop(0.45, "#ff9a3c");
-    cg.addColorStop(1, "#d8384a");
-    ctx.fillStyle = cg;
-    roundRect(ctx, core.x, core.y, core.w, core.h, 8); ctx.fill();
-    ctx.strokeStyle = "#ffd84d";
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-    // heat bars
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    for (let i = 0; i < 3; i++) {
-      ctx.fillRect(core.x + 8, core.y + 8 + i * 11, (core.w - 16) * pulse, 4);
-    }
-    ctx.fillStyle = "#fff";
-    ctx.font = '800 11px "Baloo 2", sans-serif';
-    ctx.textAlign = "center";
-    ctx.fillText("HIT ME", ccx, core.y - 12);
-    ctx.textAlign = "left";
-  } else {
-    // armoured: a sealed jar with a captured goo sloshing inside
-    ctx.fillStyle = "#3a3560";
-    roundRect(ctx, core.x - 5, core.y - 5, core.w + 10, core.h + 10, 11); ctx.fill();
-    ctx.fillStyle = "rgba(180,230,255,0.3)";
-    roundRect(ctx, core.x, core.y, core.w, core.h, 8); ctx.fill();
-    ctx.strokeStyle = "#6f68a8";
-    ctx.lineWidth = 2.5;
-    roundRect(ctx, core.x, core.y, core.w, core.h, 8); ctx.stroke();
-    ctx.fillStyle = "#4ee6b8";
-    ctx.globalAlpha = 0.75;
-    ctx.beginPath();
-    ctx.ellipse(ccx + Math.sin(t * 2.2) * 6, core.y + core.h - 12, 15, 9, 0, 0, TAU);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#8f88c8";
-    ctx.fillRect(core.x + 6, core.y - 9, core.w - 12, 7);
-  }
-
-  // ---- the two docs riding along ----
-  if (!b.dismounted) {
-    const panic = hot || b.state === "dying";
-    // Fat Doc at the wheel
-    const fx0 = b.x + 34, fy0 = y + 26;
-    ctx.fillStyle = "#f0cfa8";
-    ctx.beginPath(); ctx.arc(fx0, fy0, 13, 0, TAU); ctx.fill();
-    ctx.fillStyle = "#4ec1c8";
-    ctx.beginPath(); ctx.arc(fx0, fy0 - 3, 13, Math.PI, TAU); ctx.fill();
-    ctx.fillStyle = "#fff";
-    ctx.beginPath(); ctx.arc(fx0 - 4, fy0 - 1, 4, 0, TAU); ctx.arc(fx0 + 5, fy0 - 1, 4, 0, TAU); ctx.fill();
-    ctx.fillStyle = "#1a1a26";
-    ctx.beginPath();
-    ctx.arc(fx0 - 4, fy0 - 1 + (panic ? -1.5 : 0), 2, 0, TAU);
-    ctx.arc(fx0 + 5, fy0 - 1 + (panic ? -1.5 : 0), 2, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = "#4a3428";
-    ctx.beginPath();
-    ctx.ellipse(fx0 - 4, fy0 + 7, 5.5, 3, -0.3, 0, TAU);
-    ctx.ellipse(fx0 + 5, fy0 + 7, 5.5, 3, 0.3, 0, TAU);
-    ctx.fill();
-
-    // Skinny Doc working the hose
-    const sx0 = b.x + b.w - 36, sy0 = y + 24;
-    ctx.fillStyle = "#f0cfa8";
-    ctx.beginPath(); ctx.ellipse(sx0, sy0, 11, 13, 0, 0, TAU); ctx.fill();
-    ctx.strokeStyle = "#3a2c25"; ctx.lineWidth = 2.5;
-    for (let i = -1; i <= 1; i++) {
-      ctx.beginPath();
-      ctx.moveTo(sx0 + i * 5, sy0 - 12); ctx.lineTo(sx0 + i * 6, sy0 - 19);
-      ctx.stroke();
-    }
-    ctx.strokeStyle = "#2b2f45"; ctx.lineWidth = 2;
-    ctx.fillStyle = panic ? "#ffe7a8" : "#cfe6ff";
-    ctx.beginPath(); ctx.arc(sx0 - 5, sy0 - 1, 4.6, 0, TAU); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(sx0 + 6, sy0 - 1, 4.6, 0, TAU); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#1a1a26";
-    ctx.beginPath(); ctx.arc(sx0 - 5, sy0 - 1, 2, 0, TAU); ctx.arc(sx0 + 6, sy0 - 1, 2, 0, TAU); ctx.fill();
-    ctx.fillStyle = "#e0b184";
-    ctx.beginPath(); ctx.ellipse(sx0 + 10, sy0 + 4, 3.5, 2.6, 0, 0, TAU); ctx.fill();
-  }
-  ctx.restore();
-}
-
-export function drawBolt(ctx, b, t) {
-  ctx.save();
-  ctx.translate(b.x, b.y);
-  ctx.rotate(b.spin);
-  ctx.fillStyle = "#3a2350";
-  ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.fill();
-  ctx.strokeStyle = "#ff4d6d";
-  ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.stroke();
-  ctx.fillStyle = Math.floor(t * 14) % 2 ? "#ffd84d" : "#ff4d6d";
-  ctx.beginPath(); ctx.arc(0, 0, 4, 0, TAU); ctx.fill();
-  ctx.restore();
-}
-
-export function drawZap(ctx, z, t) {
-  const a = Math.min(1, z.life / z.max * 1.8);
-  ctx.save();
-  ctx.globalAlpha = a;
-  ctx.strokeStyle = "#ff8fa3";
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = "round";
-  for (let i = 0; i < 5; i++) {
-    const sx = z.x - 18 + i * 9;
-    ctx.beginPath();
-    ctx.moveTo(sx, z.y + TILE);
-    ctx.lineTo(sx + 5, z.y + TILE - 10 - Math.sin(t * 20 + i) * 5);
-    ctx.lineTo(sx - 2, z.y + TILE - 22 - Math.cos(t * 17 + i) * 5);
-    ctx.stroke();
-  }
-  ctx.fillStyle = "rgba(255,120,160,0.28)";
-  ctx.fillRect(z.x - 22, z.y + TILE - 22, 44, 22);
-  ctx.globalAlpha = 1;
-  ctx.restore();
-}
-
-// ------------------------------------------------------- morph pads & tiles
 export function drawPad(c, pad, t, tint) {
   const x = pad.x, base = pad.y;
   const bob = Math.sin(t * 3 + x) * 2.5;
