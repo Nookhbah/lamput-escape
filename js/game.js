@@ -408,12 +408,15 @@ export class Game {
 
     // ---- morph pads: you carry exactly one form, so the route is the puzzle ----
     for (const pad of world.pads) {
-      if (p.morphed || p.form === pad.form) continue;
+      if (p.morphed || pad.taken || p.form === pad.form) continue;
       if (Math.abs(pad.x - p.cx) < 26 && Math.abs(pad.y - (p.y + p.h)) < 34) {
         const old = p.form;
+        if (p.formPad) p.formPad.taken = false;   // what you were holding goes back
+        pad.taken = true;
+        p.formPad = pad;
         p.form = pad.form;
         audio.morph();
-        this.fx.ring(pad.x, pad.y - 22, { color: FORMS[pad.form].tint, count: 16, speed: 180, life: 0.45 });
+        this.fx.ring(pad.x, pad.y - 22, { color: FORMS[pad.form].tint, count: 8, speed: 110, size: 3, life: 0.3 });
         this.fx.text(pad.x, pad.y - 108, FORMS[pad.form].label, { color: FORMS[pad.form].tint, size: 20, life: 1.4 });
         if (old) this.fx.text(pad.x, pad.y - 134, "dropped " + FORMS[old].label, { color: "#9d7fdc", size: 14, life: 1.2 });
       }
@@ -457,6 +460,7 @@ export class Game {
             { color: "#E0C04C", speed: 160, spread: TAU, life: 0.6, size: 4 });
         }
         p.form = null;
+        p.formPad = null;                        // spent — the pedestal stays empty
         audio.door();
         this.fx.addShake(8);
         this.fx.text(c * TILE, p.cy - 40, "UNLOCKED", { color: "#E0C04C", size: 22, life: 1.4 });
@@ -791,11 +795,8 @@ export class Game {
       const ey = d.y + 18;
       const color = d.state === "chase" ? "255,77,109" : d.state === "search" ? "255,216,77" : "150,180,255";
       const alpha = (dark ? 0.24 : 0.07) * (d.blind > 0 ? 0.4 : 1);
-      const g = ctx.createRadialGradient(ex, ey, 6, ex, ey, d.range);
-      g.addColorStop(0, `rgba(${color},${alpha * 2.2})`);
-      g.addColorStop(1, `rgba(${color},0)`);
       ctx.save();
-      ctx.fillStyle = g;
+      ctx.fillStyle = `rgba(${color},${alpha})`;
       ctx.beginPath();
       ctx.moveTo(ex, ey);
       const base = d.facing > 0 ? 0 : Math.PI;

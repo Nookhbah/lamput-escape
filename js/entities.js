@@ -117,6 +117,8 @@ export class Player extends Body {
     this.morphed = false;
     this.morphKind = 0;
     this.form = null;      // heavy | spring | float | key | null
+    this.formPad = null;   // the pedestal it came from, so it can go back
+    this.jiggle = 0;       // wobble left over from a landing
     this.pounding = false;
     this.glide = false;
     this.morphProp = null;
@@ -127,7 +129,7 @@ export class Player extends Body {
   }
 
   respawn() {
-    this.form = null; this.pounding = false; this.glide = false;
+    this.form = null; this.formPad = null; this.pounding = false; this.glide = false;
     this.x = this.spawnX; this.y = this.spawnY;
     this.vx = this.vy = 0;
     this.morphed = false; this.morphProp = null;
@@ -213,14 +215,14 @@ export class Player extends Body {
         this.jumps = 1;
         this.coyote = 0;
         this.buffer = 0;
-        this.squash = 0.78;
+        this.squash = 0.66;
         audio.jump();
         fx.burst(this.cx, this.y + this.h, 7, { color: "#ffb066", speed: 110, spread: 2.2, life: 0.3, gravity: 500 });
       } else if (this.abilities.double && this.jumps === 1) {
         this.vy = DOUBLE_V * (this.form === "spring" ? 1.34 : 1);
         this.jumps = 2;
         this.buffer = 0;
-        this.squash = 0.72;
+        this.squash = 0.6;
         audio.doubleJump();
         fx.ring(this.cx, this.cy + 8, { color: "#ffd08a", count: 12, speed: 170, size: 3.5, life: 0.35 });
       }
@@ -249,6 +251,7 @@ export class Player extends Body {
     this.vy = Math.min(this.vy, 980);
 
     const wasAir = !this.onGround;
+    this.vyOnLand = this.vy;
     // Belts drag whatever stands on them: added for the move, then removed so
     // it never accumulates into the blob's own momentum.
     let belt = ground === "C" ? 125 : ground === "c" ? -125 : 0;
@@ -260,13 +263,15 @@ export class Player extends Body {
     if (this.platform) { this.x += this.platform.dx; this.y += this.platform.dy; }
 
     if (this.onGround && wasAir) {
-      this.squash = 1.32;
+      this.squash = 1.5;
+      this.jiggle = Math.min(1, 0.35 + Math.abs(this.vyOnLand || 0) / 700);
       audio.land();
       fx.burst(this.cx, this.y + this.h, 6, { color: "#c9985e", speed: 90, spread: 2.4, life: 0.25, gravity: 700 });
     }
     // squash & stretch easing
-    const target = this.onGround ? 1 : clamp(1 - this.vy / 2200, 0.8, 1.25);
-    this.squash += (target - this.squash) * Math.min(1, dt * 14);
+    const target = this.onGround ? 1 : clamp(1 - this.vy / 1500, 0.7, 1.4);
+    this.squash += (target - this.squash) * Math.min(1, dt * 11);
+    this.jiggle = Math.max(0, this.jiggle - dt * 2.6);
 
     // drop shadow position
     let sy = this.y + this.h;

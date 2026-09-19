@@ -55,8 +55,11 @@ export function drawLamput(ctx, p, t) {
 
   if (p.morphed) { drawMorphedBlob(ctx, p, t); return; }
 
-  const sq = p.squash;
-  const rx = (p.w / 2 + 3) * (1 / sq);
+  // A landing leaves him wobbling, and the wobble decays — that is what makes
+  // him read as goo rather than a ball with a face.
+  const j = (p.jiggle || 0) * Math.sin(t * 24) * 0.19;
+  const sq = p.squash * (1 - j);
+  const rx = (p.w / 2 + 3) * (1 / sq) * (1 + j * 0.5);
   const ry = (p.h / 2 + 3) * sq;
   const face = p.facing;
   const flash = p.invuln > 0 && Math.floor(t * 18) % 2;
@@ -87,10 +90,6 @@ export function drawLamput(ctx, p, t) {
     ctx.globalAlpha = 1;
   }
 
-  const grad = ctx.createRadialGradient(cx - rx * 0.35, cy - ry * 0.5, 2, cx, cy, rx * 1.5);
-  grad.addColorStop(0, flash ? "#ffffff" : sk.hi);
-  grad.addColorStop(0.55, flash ? "#ffffff" : sk.mid);
-  grad.addColorStop(1, sk.lo);
 
   // body shape follows the form
   if (p.form === "heavy") {
@@ -104,24 +103,25 @@ export function drawLamput(ctx, p, t) {
     ctx.closePath();
   } else if (p.form === "spring") {
     const st = Math.max(0.88, Math.min(1.5, 1 - p.vy / 880));
-    blobPath(ctx, cx, cy, rx * (1 / st) * 0.9, ry * st * 1.16, 0.05, t);
+    blobPath(ctx, cx, cy, rx * (1 / st) * 0.9, ry * st * 1.16, 0.07 + Math.abs(j) * 0.18, t * 1.5);
   } else if (p.form === "float") {
-    blobPath(ctx, cx, cy - ry * 0.16, rx * 1.03, ry * 1.16, 0.03, t * 0.6);
+    blobPath(ctx, cx, cy - ry * 0.16, rx * 1.03, ry * 1.16, 0.05 + Math.abs(j) * 0.15, t * 0.9);
   } else {
-    blobPath(ctx, cx, cy, rx, ry, 0.045 + Math.abs(p.vx) * 0.00006, t);
+    blobPath(ctx, cx, cy, rx, ry, 0.07 + Math.abs(p.vx) * 0.0001 + Math.abs(j) * 0.2, t * 1.5);
   }
-  ctx.fillStyle = grad;
-  ctx.fill();
+  // flat fill, one flat shade on the lower half. No gradient, no shine.
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = flash ? "#ffffff" : sk.mid;
+  ctx.fillRect(cx - rx * 2, cy - ry * 2, rx * 4, ry * 4);
+  if (!flash) {
+    ctx.fillStyle = sk.lo;
+    ctx.fillRect(cx - rx * 2, cy + ry * 0.28, rx * 4, ry * 2);
+  }
+  ctx.restore();
   ctx.lineWidth = 2.5;
   ctx.strokeStyle = sk.edge;
   ctx.stroke();
-
-  ctx.globalAlpha = 0.55;
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.ellipse(cx - rx * 0.34, cy - ry * 0.46, rx * 0.26, ry * 0.17, -0.5, 0, TAU);
-  ctx.fill();
-  ctx.globalAlpha = 1;
 
   if (p.form === "spring") {
     ctx.strokeStyle = "rgba(110,70,0,0.4)"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
@@ -149,7 +149,7 @@ export function drawLamput(ctx, p, t) {
     ctx.stroke();
   }
 
-  const ex = rx * 0.34, ey = -ry * 0.16, er = Math.min(rx, ry) * 0.31;
+  const ex = rx * 0.34, ey = -ry * 0.16 + j * ry * 0.5, er = Math.min(rx, ry) * 0.31;
   const lookX = face * 0.6 + Math.max(-1, Math.min(1, p.vx / 260)) * 0.4;
   const lookY = Math.max(-1, Math.min(1, p.vy / 400));
   eye(ctx, cx - ex, cy + ey, er, lookX, lookY, p.blink);
@@ -172,8 +172,9 @@ export function drawLamput(ctx, p, t) {
   ctx.strokeStyle = sk.lo;
   ctx.lineWidth = 3;
   ctx.beginPath();
+  const whip = j * 26 + Math.sin(t * 3.2) * 3;
   ctx.moveTo(cx + face * 3, cy - ry * 0.95);
-  ctx.quadraticCurveTo(cx + face * 12, cy - ry * 1.45, cx + face * 2, cy - ry * 1.7);
+  ctx.quadraticCurveTo(cx + face * 12 + whip, cy - ry * 1.45, cx + face * 2 + whip * 1.4, cy - ry * 1.7);
   ctx.stroke();
   ctx.restore();
 }
@@ -192,11 +193,10 @@ function drawMorphedBlob(ctx, p, t) {
 // ------------------------------------------------------------ morph props ---
 export function drawProp(ctx, cx, baseY, kind, t, morphed = false) {
   ctx.save();
-  const glow = morphed ? "rgba(255,150,60,0.55)" : "rgba(78,230,184,0.28)";
-  ctx.globalAlpha = 0.35;
-  ctx.fillStyle = glow;
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = "#000";
   ctx.beginPath();
-  ctx.ellipse(cx, baseY - 2, 24, 7, 0, 0, TAU);
+  ctx.ellipse(cx, baseY - 2, 22, 6, 0, 0, TAU);
   ctx.fill();
   ctx.globalAlpha = 1;
 
@@ -243,8 +243,7 @@ export function drawProp(ctx, cx, baseY, kind, t, morphed = false) {
     ctx.fillRect(cx - 4, baseY - 39, 8, 8);
     ctx.fillStyle = "#c9c9d6";
     roundRect(ctx, cx - 11, baseY - 43, 10, 5, 2); ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    ctx.fillRect(cx - 6, baseY - 28, 3, 22);
+
   }
   ctx.restore();
 }
@@ -378,22 +377,14 @@ export function drawGoo(ctx, g, t) {
   const bob = Math.sin(t * 3 + g.phase) * 4;
   const cx = g.x, cy = g.y + bob;
   ctx.save();
-  ctx.globalAlpha = 0.5;
-  const halo = ctx.createRadialGradient(cx, cy, 2, cx, cy, 22);
-  halo.addColorStop(0, "rgba(78,230,184,0.7)");
-  halo.addColorStop(1, "rgba(78,230,184,0)");
-  ctx.fillStyle = halo;
-  ctx.beginPath(); ctx.arc(cx, cy, 22, 0, TAU); ctx.fill();
-  ctx.globalAlpha = 1;
   blobPath(ctx, cx, cy, 9.5, 9.5, 0.035, t + g.phase, 4);
-  const gr = ctx.createRadialGradient(cx - 3, cy - 4, 1, cx, cy, 12);
-  gr.addColorStop(0, "#d6fff3");
-  gr.addColorStop(0.5, "#4ee6b8");
-  gr.addColorStop(1, "#1fa47c");
-  ctx.fillStyle = gr;
+  ctx.fillStyle = "#4ee6b8";
   ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.beginPath(); ctx.arc(cx - 3, cy - 4, 2.4, 0, TAU); ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#1fa47c";
+  ctx.stroke();
+  ctx.fillStyle = "#b8f5e0";
+  ctx.beginPath(); ctx.arc(cx - 3, cy - 3.5, 2.6, 0, TAU); ctx.fill();
   ctx.restore();
 }
 
@@ -407,13 +398,8 @@ export function drawExit(ctx, e, t, open) {
   ctx.strokeStyle = open ? "#4ee6b8" : "#4a3a6b";
   ctx.stroke();
   if (open) {
-    ctx.globalAlpha = 0.35 + Math.sin(t * 5) * 0.2;
-    const g = ctx.createLinearGradient(x, y - 56, x, y);
-    g.addColorStop(0, "rgba(78,230,184,0.95)");
-    g.addColorStop(1, "rgba(78,230,184,0.1)");
-    ctx.fillStyle = g;
+    ctx.fillStyle = "#4ee6b8";
     roundRect(ctx, x - 16, y - 52, 32, 52, 6); ctx.fill();
-    ctx.globalAlpha = 1;
     ctx.fillStyle = "#d9fff4";
     ctx.font = '800 13px "Baloo 2", sans-serif';
     ctx.textAlign = "center";
@@ -465,14 +451,9 @@ export function drawLaserNode(ctx, x, y, on) {
 
 export function drawLaserBeam(ctx, x, y1, y2, t) {
   ctx.save();
-  const flick = 0.75 + Math.sin(t * 26) * 0.25;
-  ctx.globalAlpha = 0.28 * flick;
   ctx.fillStyle = "#ff4d6d";
-  ctx.fillRect(x - 9, y1, 18, y2 - y1);
-  ctx.globalAlpha = flick;
-  ctx.fillStyle = "#ff8fa3";
   ctx.fillRect(x - 3, y1, 6, y2 - y1);
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = "#ff8fa3";
   ctx.fillRect(x - 1, y1, 2, y2 - y1);
   ctx.restore();
 }
@@ -481,8 +462,8 @@ export function drawLift(ctx, p) {
   ctx.save();
   ctx.fillStyle = "#6d4fa8";
   roundRect(ctx, p.x, p.y, p.w, p.h, 6); ctx.fill();
-  ctx.fillStyle = "#9d7fdc";
-  ctx.fillRect(p.x + 4, p.y + 3, p.w - 8, 4);
+  ctx.fillStyle = "#8f73cc";
+  ctx.fillRect(p.x + 4, p.y + 3, p.w - 8, 3);
   ctx.fillStyle = "rgba(0,0,0,0.25)";
   for (let i = 0; i < 4; i++) ctx.fillRect(p.x + 8 + i * 18, p.y + 10, 10, 4);
   ctx.restore();
@@ -759,19 +740,22 @@ export function drawPad(c, pad, t, tint) {
   const bob = Math.sin(t * 3 + x) * 2.5;
   c.save();
 
-  // glow so it reads as "pick me up" from across the room
-  const g = c.createRadialGradient(x, base - 30, 2, x, base - 30, 42);
-  g.addColorStop(0, tint); g.addColorStop(1, "rgba(0,0,0,0)");
-  c.globalAlpha = 0.28 + Math.sin(t * 4) * 0.08;
-  c.fillStyle = g;
-  c.beginPath(); c.arc(x, base - 30, 42, 0, TAU); c.fill();
-  c.globalAlpha = 1;
-
   // base plate
   c.fillStyle = "#2c1f4a";
   roundRect(c, x - 22, base - 9, 44, 9, 3); c.fill();
   c.fillStyle = "#463370";
   roundRect(c, x - 22, base - 11, 44, 4, 2); c.fill();
+
+  if (pad.taken) {   // you are carrying it — the pedestal is bare
+    c.globalAlpha = 0.5;
+    c.strokeStyle = tint;
+    c.lineWidth = 2;
+    c.setLineDash([5, 5]);
+    c.beginPath(); c.ellipse(x, base - 16, 15, 6, 0, 0, TAU); c.stroke();
+    c.setLineDash([]);
+    c.restore();
+    return;
+  }
 
   if (pad.form === "spring") {
     // a coil drawn as stacked rings, lit on one side, with a cap plate
@@ -789,9 +773,6 @@ export function drawPad(c, pad, t, tint) {
       c.strokeStyle = tint;
       c.lineWidth = 4.4;
       c.beginPath(); c.ellipse(x, yy, rw, 5.2, 0, 0, TAU); c.stroke();
-      c.strokeStyle = "rgba(255,246,214,.75)";
-      c.lineWidth = 1.8;
-      c.beginPath(); c.ellipse(x, yy - 1, rw * 0.72, 3.4, 0, Math.PI * 1.08, Math.PI * 1.85); c.stroke();
       c.restore();
     }
     inked(c, [[x - 17, base - 20 - h], [x + 17, base - 21 - h], [x + 16, base - 13 - h], [x - 16, base - 12 - h]],
@@ -877,11 +858,8 @@ export function drawGate(c, x, y, t) {
   roundRect(c, x + 5, y, TILE - 10, TILE, 4); c.fill();
   c.fillStyle = "#6b5a92";
   roundRect(c, x + 8, y + 3, TILE - 16, TILE - 6, 3); c.fill();
-  const glow = 0.4 + Math.sin(t * 3 + y * 0.1) * 0.25;
-  c.fillStyle = `rgba(224,192,76,${glow})`;
-  c.beginPath(); c.arc(x + TILE / 2, y + TILE / 2, 5, 0, TAU); c.fill();
-  c.strokeStyle = "rgba(224,192,76,.5)"; c.lineWidth = 1.6;
-  c.beginPath(); c.arc(x + TILE / 2, y + TILE / 2, 9, 0, TAU); c.stroke();
+  c.fillStyle = "#E0C04C";
+  c.beginPath(); c.arc(x + TILE / 2, y + TILE / 2, 4.5, 0, TAU); c.fill();
 }
 
 export function drawUpdraft(c, x, y, t) {
