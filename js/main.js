@@ -39,8 +39,25 @@ class Input {
 
     // touch / pointer buttons
     const pad = document.getElementById("touch");
-    if (matchMedia("(pointer: coarse)").matches) pad.classList.remove("hidden");
-    for (const btn of pad.querySelectorAll(".tbtn")) {
+    const pauseBtn = document.getElementById("pauseBtn");
+    const rotate = document.getElementById("rotate");
+    const coarse = matchMedia("(pointer: coarse)").matches;
+    if (coarse) {
+      pad.classList.remove("hidden");
+      pauseBtn.classList.remove("hidden");
+      // the play area is 16:9 — portrait squeezes it to nothing
+      const checkOrientation = () => {
+        rotate.hidden = window.innerWidth >= window.innerHeight;
+      };
+      checkOrientation();
+      addEventListener("resize", checkOrientation);
+      addEventListener("orientationchange", () => setTimeout(checkOrientation, 120));
+      // stop the page itself from scrolling or zooming under the game
+      document.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+      document.addEventListener("gesturestart", (e) => e.preventDefault());
+      document.addEventListener("dblclick", (e) => e.preventDefault(), { passive: false });
+    }
+    for (const btn of [...pad.querySelectorAll(".tbtn"), pauseBtn]) {
       const k = btn.dataset.key;
       const press = (e) => {
         e.preventDefault();

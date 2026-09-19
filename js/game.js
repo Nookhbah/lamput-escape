@@ -24,7 +24,16 @@ function roundRect2(ctx, x, y, w, h, r) {
 
 // Rendered on the title screen and the pause panel, so the controls are always
 // one keypress away instead of living only in the page footer.
-const CONTROLS = [
+const TOUCH = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+
+const CONTROLS = TOUCH ? [
+  [["\u25c0", "\u25b6"], "Move"],
+  [["JUMP"], "Tap twice to blob-bounce"],
+  [["MORPH"], "Morph on a prop"],
+  [["DASH"], "Goo dash"],
+  [["\u25bc"], "Drop through \u00b7 anvil slam"],
+  [["II"], "Pause"],
+] : [
   [["\u25c0", "\u25b6"], "Move"],
   [["SPACE"], "Jump \u00b7 twice to blob-bounce"],
   [["SHIFT"], "Morph into a prop"],

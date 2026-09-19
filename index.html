@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#140a24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Lamput: Escape the Docs</title>
 <meta name="description" content="A blobby escape-the-lab chase game starring a shapeshifting orange goo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,15 +18,23 @@
   <div id="frame">
     <canvas id="game" width="960" height="560"></canvas>
     <div id="touch" class="hidden">
-      <div class="pad">
-        <button class="tbtn" data-key="left">◀</button>
-        <button class="tbtn" data-key="right">▶</button>
+      <div class="pad left">
+        <button class="tbtn" data-key="left" aria-label="Move left">&#9664;</button>
+        <button class="tbtn" data-key="right" aria-label="Move right">&#9654;</button>
+        <button class="tbtn down" data-key="down" aria-label="Down, and anvil slam">&#9660;</button>
       </div>
       <div class="pad right">
-        <button class="tbtn big" data-key="morph">MORPH</button>
-        <button class="tbtn big" data-key="dash">DASH</button>
-        <button class="tbtn big jump" data-key="jump">JUMP</button>
+        <button class="tbtn act" data-key="morph" aria-label="Morph">MORPH</button>
+        <button class="tbtn act" data-key="dash" aria-label="Dash">DASH</button>
+        <button class="tbtn jump" data-key="jump" aria-label="Jump">JUMP</button>
       </div>
+    </div>
+    <button id="pauseBtn" class="hidden" data-key="pause" aria-label="Pause">II</button>
+  </div>
+  <div id="rotate" hidden>
+    <div class="rot-inner">
+      <div class="phone"></div>
+      <p>Turn your phone sideways</p>
     </div>
   </div>
   <p id="hint">Arrows / WASD move &nbsp;·&nbsp; Space jump (twice to blob-bounce) &nbsp;·&nbsp; Shift morph &nbsp;·&nbsp; X dash &nbsp;·&nbsp; P pause &nbsp;·&nbsp; M mute &nbsp;·&nbsp; R retry</p>
