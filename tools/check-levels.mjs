@@ -128,6 +128,31 @@ function analyse(def) {
   const unfair = [];
   for (const t of [...orbs, ...props, exit]) if (!canTouch(t)) unreachable.push(t.what);
 
+  // A hiding spot is only a hiding spot if a doctor walks past it. Props
+  // stranded on ledges nobody patrols are decoration pretending to be a
+  // mechanic.
+  const spans = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const ch = raw(c, r);
+      if (ch !== "1" && ch !== "2") continue;
+      let L = c, R = c;
+      while (!isSolid(tile(L - 1, r)) && stand(L - 1, r + 1)) L--;
+      while (!isSolid(tile(R + 1, r)) && stand(R + 1, r + 1)) R++;
+      spans.push({ r, L, R });
+    }
+  }
+  if (spans.length) {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (raw(c, r) !== "H") continue;
+        if (!spans.some((s) => s.r === r && c >= s.L && c <= s.R)) {
+          unfair.push(`prop at (${c},${r}) sits where no doctor patrols`);
+        }
+      }
+    }
+  }
+
   // Anything you stand on must have something under it. Props and pads hanging
   // in mid-air look broken, and no amount of art fixes a floating object.
   for (let r = 0; r < ROWS; r++) {
