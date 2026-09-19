@@ -175,7 +175,10 @@ class World {
     const on = ((time + l.phase) % 2.5) < 1.35;
     let end = H;
     for (let r = Math.floor(l.y / TILE) + 1; r < ROWS; r++) {
-      if (isSolid(this.tile(Math.floor(l.x / TILE), r))) { end = r * TILE; break; }
+      // A beam stops at anything physical, platforms included. Running it
+      // through the scenery to the floor is what made them read as wrong.
+      const ch = this.tile(Math.floor(l.x / TILE), r);
+      if (isSolid(ch) || isOneWay(ch)) { end = r * TILE; break; }
     }
     return { on, top: l.y + 18, bottom: end };
   }
