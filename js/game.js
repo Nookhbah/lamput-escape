@@ -155,6 +155,34 @@ class World {
       }
     }
     this.totalGoo = this.goos.length;
+    this.clampLifts();
+  }
+
+  // A lift is authored as a single tile but is two tiles wide and swings a
+  // fixed distance either way, so one placed near a wall used to sail straight
+  // through it — and anything riding it got left embedded in the bricks with
+  // no floor to fall to. Shrink the swing to whatever actually fits.
+  clampLifts() {
+    for (const lift of this.lifts) {
+      let safe = lift.range;
+      for (const dir of [-1, 1]) {
+        let d = 0;
+        while (d + 4 <= lift.range && this.liftClear(lift, dir * (d + 4))) d += 4;
+        safe = Math.min(safe, d);
+      }
+      lift.range = safe;
+    }
+  }
+
+  liftClear(lift, off) {
+    const x = lift.ox + (lift.axis === "x" ? off : 0);
+    const y = lift.oy + (lift.axis === "y" ? off : 0);
+    const c0 = Math.floor(x / TILE), c1 = Math.floor((x + lift.w - 1) / TILE);
+    const r0 = Math.floor(y / TILE), r1 = Math.floor((y + lift.h - 1) / TILE);
+    for (let r = r0; r <= r1; r++)
+      for (let c = c0; c <= c1; c++)
+        if (isSolid(this.tile(c, r))) return false;
+    return true;
   }
 
   tile(c, r) {
@@ -364,6 +392,24 @@ export class Game {
     }
   }
 
+
+  // Separating two docs must not post one of them inside a wall — they would
+  // stand in the bricks and, worse, catch you through them. Give back only as
+  // much of the shove as there is open floor for.
+  shove(d, dx) {
+    const world = this.world;
+    const step = Math.sign(dx);
+    let moved = 0;
+    while (Math.abs(moved) < Math.abs(dx)) {
+      const next = moved + step * Math.min(2, Math.abs(dx) - Math.abs(moved));
+      const x = d.x + next;
+      const edge = step > 0 ? x + d.w - 1 : x;
+      if (world.solidAtPx(edge, d.y + 4) || world.solidAtPx(edge, d.y + d.h - 4)) break;
+      moved = next;
+    }
+    d.x += moved;
+  }
+
   updatePlay(dt) {
     const inp = this.input;
     const p = this.player;
@@ -400,16 +446,18 @@ export class Game {
       for (let k = i + 1; k < this.docs.length; k++) {
         const a = this.docs[i], b = this.docs[k];
         if (Math.abs(a.y - b.y) > 40) continue;
-        const gap = Math.abs(a.cx - b.cx), want = (a.w + b.w) / 2 + 6;
+        // their coats are drawn much wider than their hitboxes, so padding to
+        // the hitbox alone still renders as one four-legged doctor
+        const gap = Math.abs(a.cx - b.cx), want = (a.w + b.w) / 2 + 24;
         if (gap >= want) continue;
         const push = (want - gap) / 2;
         const dir = Math.sign(a.cx - b.cx) || 1;
-        a.x += dir * push;
-        b.x -= dir * push;
+        this.shove(a, dir * push);
+        this.shove(b, -dir * push);
       }
     }
-
     const chasing = this.docs.some((d) => d.state === "chase");
+
     audio.tense = chasing;
     p.scared = chasing && !p.morphed ? 0.3 : p.scared;
 
