@@ -83,7 +83,6 @@ export function drawLamput(ctx, p, t) {
     heavy:  { body: "#8A8FA8", line: "#5A5F78" },
     spring: { body: "#E0B23C", line: "#A87C12" },
     float:  { body: "#7FBFE0", line: "#4D8CB0" },
-    key:    { body: "#E0C04C", line: "#A8891C" },
   };
   const sk = SKIN[p.form] || { body: "#F5821F", line: "#C4550A" };
 
@@ -160,13 +159,26 @@ export function drawLamput(ctx, p, t) {
       ctx.stroke();
     }
   } else if (p.form === "key") {
-    ctx.lineWidth = 4;
+    const kx = cx + face * bw * 0.95, ky = cy + bh * 0.3;
+    const gold = "#E0C04C", goldLo = "#A8891C";
+    ctx.strokeStyle = gold;
+    ctx.lineCap = "round";
+    ctx.lineWidth = 4.5;
     ctx.beginPath();
-    ctx.moveTo(cx + bw * 0.6, cy + bh * 0.42); ctx.lineTo(cx + bw * 1.5, cy + bh * 0.42);
-    ctx.moveTo(cx + bw * 1.2, cy + bh * 0.42); ctx.lineTo(cx + bw * 1.2, cy + bh * 0.86);
-    ctx.moveTo(cx + bw * 1.46, cy + bh * 0.42); ctx.lineTo(cx + bw * 1.46, cy + bh * 0.92);
+    ctx.moveTo(kx, ky); ctx.lineTo(kx + face * 20, ky);
     ctx.stroke();
-    ctx.lineWidth = 1.8;
+    ctx.lineWidth = 3.6;
+    ctx.beginPath();
+    ctx.moveTo(kx + face * 13, ky); ctx.lineTo(kx + face * 13, ky + 8);
+    ctx.moveTo(kx + face * 19, ky); ctx.lineTo(kx + face * 19, ky + 10);
+    ctx.stroke();
+    ctx.fillStyle = gold;
+    ctx.beginPath(); ctx.arc(kx - face * 4, ky, 7, 0, TAU); ctx.fill();
+    ctx.fillStyle = sk.body;
+    ctx.beginPath(); ctx.arc(kx - face * 4, ky, 3, 0, TAU); ctx.fill();
+    ctx.strokeStyle = goldLo; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(kx - face * 4, ky, 7, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = sk.line; ctx.lineWidth = 1.8;
   }
 
   // the curl
