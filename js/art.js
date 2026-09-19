@@ -49,133 +49,171 @@ function eye(ctx, x, y, r, lookX, lookY, blink) {
 }
 
 // ---------------------------------------------------------------- Lamput ---
+// A soft pear silhouette, wider at the bottom, wobbling. No outline, no
+// gradient, no shine — flat colour with thin darker interior lines, the way the
+// reference art does it.
+function blobBody(ctx, cx, cy, rx, ry, wob, t, bias) {
+  ctx.beginPath();
+  const steps = 52;
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * TAU;
+    const widen = 1 + bias * Math.sin(a);                 // sin>0 is the bottom
+    const k = 1 + Math.sin(a * 3 + t * 2.1) * wob + Math.cos(a * 5 - t * 1.7) * wob * 0.5;
+    const x = cx + Math.cos(a) * rx * k * widen;
+    const y = cy + Math.sin(a) * ry * k;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
+
 export function drawLamput(ctx, p, t) {
   const cx = p.x + p.w / 2;
   const cy = p.y + p.h / 2;
 
   if (p.morphed) { drawMorphedBlob(ctx, p, t); return; }
 
-  // A landing leaves him wobbling, and the wobble decays — that is what makes
-  // him read as goo rather than a ball with a face.
   const j = (p.jiggle || 0) * Math.sin(t * 24) * 0.19;
   const sq = p.squash * (1 - j);
-  const rx = (p.w / 2 + 3) * (1 / sq) * (1 + j * 0.5);
-  const ry = (p.h / 2 + 3) * sq;
+  const rx = (p.w / 2 + 4) * (1 / sq) * (1 + j * 0.5);
+  const ry = (p.h / 2 + 4) * sq;
   const face = p.facing;
-  const flash = p.invuln > 0 && Math.floor(t * 18) % 2;
 
+  // one flat colour per form, plus a darker tone used only for thin line work
   const SKIN = {
-    heavy:  { hi: "#cfc6e4", mid: "#8A8FA8", lo: "#4d5169", edge: "rgba(35,30,60,0.6)" },
-    spring: { hi: "#ffe08a", mid: "#E0B23C", lo: "#9c6c15", edge: "rgba(110,70,0,0.55)" },
-    float:  { hi: "#e2f4ff", mid: "#7FBFE0", lo: "#41769b", edge: "rgba(20,60,90,0.55)" },
-    key:    { hi: "#fff0a8", mid: "#E0C04C", lo: "#9c7f14", edge: "rgba(110,85,0,0.55)" },
+    heavy:  { body: "#8A8FA8", line: "#5A5F78" },
+    spring: { body: "#E0B23C", line: "#A87C12" },
+    float:  { body: "#7FBFE0", line: "#4D8CB0" },
+    key:    { body: "#E0C04C", line: "#A8891C" },
   };
-  const sk = SKIN[p.form] || { hi: "#ffa54d", mid: "#ff7a1a", lo: "#e2560b", edge: "rgba(120,44,0,0.55)" };
+  const sk = SKIN[p.form] || { body: "#F5821F", line: "#C4550A" };
 
   ctx.save();
-  ctx.globalAlpha = 0.28;
+  if (p.invuln > 0) ctx.globalAlpha = Math.floor(t * 14) % 2 ? 0.4 : 1;
+
+  // soft contact shadow
+  ctx.save();
+  ctx.globalAlpha *= 0.2;
   ctx.fillStyle = "#000";
   ctx.beginPath();
-  ctx.ellipse(cx, p.shadowY ?? (p.y + p.h + 3), p.w * 0.45, 5, 0, 0, TAU);
+  ctx.ellipse(cx, p.shadowY ?? (p.y + p.h + 3), p.w * 0.44, 4.5, 0, 0, TAU);
   ctx.fill();
-  ctx.globalAlpha = 1;
+  ctx.restore();
 
   if (p.dashTime > 0) {
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = sk.hi;
+    ctx.save();
+    ctx.globalAlpha *= 0.22;
+    ctx.fillStyle = sk.body;
     for (let i = 1; i <= 3; i++) {
-      blobPath(ctx, cx - p.vx * 0.012 * i, cy - p.vy * 0.012 * i, rx * (1 - i * 0.12), ry * (1 - i * 0.12), 0.05, t);
+      blobBody(ctx, cx - p.vx * 0.012 * i, cy - p.vy * 0.012 * i, rx * (1 - i * 0.13), ry * (1 - i * 0.13), 0.05, t, 0.14);
       ctx.fill();
     }
-    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
-
-  // body shape follows the form
-  if (p.form === "heavy") {
+  // little nub arms, drawn behind so they read as part of the same mass
+  ctx.fillStyle = sk.body;
+  for (const sgn of [-1, 1]) {
+    const ax = cx + sgn * rx * 0.92, ay = cy + ry * 0.24;
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.rotate(sgn * (0.5 + Math.sin(t * 2.4 + sgn) * 0.14));
     ctx.beginPath();
-    ctx.moveTo(cx - rx * 1.2, cy - ry * 0.55);
-    ctx.lineTo(cx + rx * 1.2, cy - ry * 0.55);
-    ctx.lineTo(cx + rx * 0.72, cy - ry * 0.05);
-    ctx.lineTo(cx + rx * 0.95, cy + ry);
-    ctx.lineTo(cx - rx * 0.95, cy + ry);
-    ctx.lineTo(cx - rx * 0.72, cy - ry * 0.05);
-    ctx.closePath();
-  } else if (p.form === "spring") {
-    const st = Math.max(0.88, Math.min(1.5, 1 - p.vy / 880));
-    blobPath(ctx, cx, cy, rx * (1 / st) * 0.9, ry * st * 1.16, 0.07 + Math.abs(j) * 0.18, t * 1.5);
-  } else if (p.form === "float") {
-    blobPath(ctx, cx, cy - ry * 0.16, rx * 1.03, ry * 1.16, 0.05 + Math.abs(j) * 0.15, t * 0.9);
-  } else {
-    blobPath(ctx, cx, cy, rx, ry, 0.07 + Math.abs(p.vx) * 0.0001 + Math.abs(j) * 0.2, t * 1.5);
+    ctx.ellipse(0, 0, rx * 0.34, ry * 0.19, 0, 0, TAU);
+    ctx.fill();
+    ctx.restore();
   }
-  // flat fill, one flat shade on the lower half. No gradient, no shine.
-  ctx.save();
-  ctx.clip();
-  ctx.fillStyle = flash ? "#ffffff" : sk.mid;
-  ctx.fillRect(cx - rx * 2, cy - ry * 2, rx * 4, ry * 4);
-  if (!flash) {
-    ctx.fillStyle = sk.lo;
-    ctx.fillRect(cx - rx * 2, cy + ry * 0.28, rx * 4, ry * 2);
+
+  // body
+  let bias = 0.16;
+  let bw = rx, bh = ry;
+  if (p.form === "heavy") { bias = 0.3; bw = rx * 1.12; bh = ry * 0.9; }
+  else if (p.form === "spring") {
+    const st = Math.max(0.9, Math.min(1.45, 1 - p.vy / 900));
+    bias = 0.1; bw = rx / st * 0.94; bh = ry * st * 1.12;
+  } else if (p.form === "float") { bias = -0.12; bw = rx * 1.04; bh = ry * 1.14; }
+
+  ctx.fillStyle = sk.body;
+  blobBody(ctx, cx, cy, bw, bh, 0.06 + Math.abs(p.vx) * 0.00008 + Math.abs(j) * 0.16, t * 1.4, bias);
+  ctx.fill();
+
+  // two small foot bumps so he sits on the ground rather than floating
+  for (const sgn of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(cx + sgn * bw * 0.42, cy + bh * 0.88, bw * 0.3, bh * 0.2, 0, 0, TAU);
+    ctx.fill();
   }
-  ctx.restore();
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = sk.edge;
+
+  // thin interior line work — the only detail, same family as the body colour
+  ctx.strokeStyle = sk.line;
+  ctx.lineWidth = 1.8;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(cx - bw * 0.52, cy + bh * 0.3);
+  ctx.quadraticCurveTo(cx - bw * 0.2, cy + bh * 0.5, cx + bw * 0.04, cy + bh * 0.34);
   ctx.stroke();
 
   if (p.form === "spring") {
-    ctx.strokeStyle = "rgba(110,70,0,0.4)"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
-    for (let i = 0; i < 3; i++) {
-      const yy = cy - ry * 0.5 + i * ry * 0.5;
+    for (let i = 0; i < 2; i++) {
+      const yy = cy - bh * 0.3 + i * bh * 0.46;
       ctx.beginPath();
-      ctx.moveTo(cx - rx * 0.72, yy);
-      ctx.quadraticCurveTo(cx, yy + ry * 0.2, cx + rx * 0.72, yy - ry * 0.05);
+      ctx.moveTo(cx - bw * 0.62, yy);
+      ctx.quadraticCurveTo(cx, yy + bh * 0.18, cx + bw * 0.62, yy - bh * 0.04);
       ctx.stroke();
     }
-  } else if (p.form === "heavy") {
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.fillRect(cx - rx * 1.0, cy - ry * 0.48, rx * 1.7, 3);
-  } else if (p.form === "float") {
-    ctx.fillStyle = sk.lo;
-    ctx.beginPath();
-    ctx.moveTo(cx - 4, cy + ry * 0.92); ctx.lineTo(cx + 4, cy + ry * 0.92);
-    ctx.lineTo(cx, cy + ry * 1.28); ctx.closePath(); ctx.fill();
   } else if (p.form === "key") {
-    ctx.strokeStyle = sk.lo; ctx.lineWidth = 4.5; ctx.lineCap = "round";
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(cx + rx * 0.5, cy + ry * 0.45); ctx.lineTo(cx + rx * 1.5, cy + ry * 0.45);
-    ctx.moveTo(cx + rx * 1.2, cy + ry * 0.45); ctx.lineTo(cx + rx * 1.2, cy + ry * 0.95);
-    ctx.moveTo(cx + rx * 1.5, cy + ry * 0.45); ctx.lineTo(cx + rx * 1.5, cy + ry * 1.0);
+    ctx.moveTo(cx + bw * 0.6, cy + bh * 0.42); ctx.lineTo(cx + bw * 1.5, cy + bh * 0.42);
+    ctx.moveTo(cx + bw * 1.2, cy + bh * 0.42); ctx.lineTo(cx + bw * 1.2, cy + bh * 0.86);
+    ctx.moveTo(cx + bw * 1.46, cy + bh * 0.42); ctx.lineTo(cx + bw * 1.46, cy + bh * 0.92);
     ctx.stroke();
+    ctx.lineWidth = 1.8;
   }
 
-  const ex = rx * 0.34, ey = -ry * 0.16 + j * ry * 0.5, er = Math.min(rx, ry) * 0.31;
-  const lookX = face * 0.6 + Math.max(-1, Math.min(1, p.vx / 260)) * 0.4;
-  const lookY = Math.max(-1, Math.min(1, p.vy / 400));
-  eye(ctx, cx - ex, cy + ey, er, lookX, lookY, p.blink);
-  eye(ctx, cx + ex, cy + ey, er, lookX, lookY, p.blink);
-
-  ctx.strokeStyle = "#7a2a05";
-  ctx.lineWidth = 2.2;
-  ctx.lineCap = "round";
+  // the curl
+  const whip = j * 22 + Math.sin(t * 3) * 3;
+  ctx.strokeStyle = sk.line;
+  ctx.lineWidth = 3.2;
   ctx.beginPath();
-  const my = cy + ry * 0.42;
-  if (p.scared > 0) {
-    ctx.ellipse(cx, my, rx * 0.2, ry * 0.18, 0, 0, TAU);
-    ctx.fillStyle = "#5b1d05";
-    ctx.fill();
-  } else {
-    ctx.arc(cx, my - ry * 0.2, rx * 0.34, 0.25 * Math.PI, 0.75 * Math.PI);
-    ctx.stroke();
-  }
-
-  ctx.strokeStyle = sk.lo;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  const whip = j * 26 + Math.sin(t * 3.2) * 3;
-  ctx.moveTo(cx + face * 3, cy - ry * 0.95);
-  ctx.quadraticCurveTo(cx + face * 12 + whip, cy - ry * 1.45, cx + face * 2 + whip * 1.4, cy - ry * 1.7);
+  ctx.moveTo(cx + face * 3, cy - bh * 0.92);
+  ctx.quadraticCurveTo(cx + face * 12 + whip, cy - bh * 1.4, cx + face * 2 + whip * 1.4, cy - bh * 1.64);
   ctx.stroke();
+
+  // big eyes, close together, high on the body
+  const er = Math.min(bw, bh) * 0.44;
+  const ex = er * 0.86, ey = -bh * 0.2 + j * bh * 0.4;
+  const lookX = face * 0.55 + Math.max(-1, Math.min(1, p.vx / 260)) * 0.35;
+  const lookY = Math.max(-1, Math.min(1, p.vy / 420));
+  for (const sgn of [-1, 1]) {
+    const x = cx + sgn * ex, y = cy + ey;
+    if (p.blink > 0.5) {
+      ctx.strokeStyle = "#2b1a12"; ctx.lineWidth = er * 0.26;
+      ctx.beginPath();
+      ctx.moveTo(x - er * 0.62, y); ctx.quadraticCurveTo(x, y - er * 0.34, x + er * 0.62, y);
+      ctx.stroke();
+      continue;
+    }
+    ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath(); ctx.ellipse(x, y, er * 0.88, er, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = "#231018";
+    ctx.beginPath();
+    ctx.arc(x + lookX * er * 0.3, y + lookY * er * 0.26, er * 0.42, 0, TAU);
+    ctx.fill();
+  }
+
+  // mouth
+  ctx.strokeStyle = "#8a4406";
+  ctx.lineWidth = 2.2;
+  const my = cy + bh * 0.4;
+  if (p.scared > 0) {
+    ctx.fillStyle = "#8a4406";
+    ctx.beginPath(); ctx.ellipse(cx, my, bw * 0.17, bh * 0.16, 0, 0, TAU); ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(cx - bw * 0.26, my - bh * 0.06);
+    ctx.quadraticCurveTo(cx, my + bh * 0.16, cx + bw * 0.26, my - bh * 0.07);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
