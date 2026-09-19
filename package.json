@@ -1,0 +1,13 @@
+{
+  "name": "lamput-escape-the-docs",
+  "version": "1.0.0",
+  "description": "A blobby escape-the-lab chase game starring a shapeshifting orange goo.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node tools/serve.mjs 4321",
+    "start": "node tools/serve.mjs 4321",
+    "check": "node tools/check-levels.mjs",
+    "jump": "node tools/jump-test.mjs"
+  }
+}

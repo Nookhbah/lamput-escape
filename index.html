@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lamput: Escape the Docs</title>
+<meta name="description" content="A blobby escape-the-lab chase game starring a shapeshifting orange goo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='55' r='40' fill='%23ff7a1a'/><circle cx='38' cy='45' r='9' fill='%23fff'/><circle cx='64' cy='45' r='9' fill='%23fff'/><circle cx='39' cy='47' r='4.5' fill='%23222'/><circle cx='65' cy='47' r='4.5' fill='%23222'/></svg>">
+</head>
+<body>
+  <div id="frame">
+    <canvas id="game" width="960" height="560"></canvas>
+    <div id="touch" class="hidden">
+      <div class="pad">
+        <button class="tbtn" data-key="left">◀</button>
+        <button class="tbtn" data-key="right">▶</button>
+      </div>
+      <div class="pad right">
+        <button class="tbtn big" data-key="morph">MORPH</button>
+        <button class="tbtn big" data-key="dash">DASH</button>
+        <button class="tbtn big jump" data-key="jump">JUMP</button>
+      </div>
+    </div>
+  </div>
+  <p id="hint">Arrows / WASD move &nbsp;·&nbsp; Space jump (twice to blob-bounce) &nbsp;·&nbsp; Shift morph &nbsp;·&nbsp; X dash &nbsp;·&nbsp; P pause &nbsp;·&nbsp; M mute &nbsp;·&nbsp; R retry</p>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
