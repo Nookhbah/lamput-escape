@@ -666,7 +666,7 @@ export class Game {
     this.drawVisionCones(ctx);
     for (const d of this.docs) (d.kind === "fat" ? art.drawFat : art.drawSkinny)(ctx, d, this.time);
 
-    if (this.state !== "caught" || Math.floor(this.time * 20) % 2) art.drawLamput(ctx, this.player, this.time);
+    art.drawLamput(ctx, this.player, this.time);
 
     this.fx.drawParticles(ctx);
 

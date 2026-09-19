@@ -88,7 +88,6 @@ export function drawLamput(ctx, p, t) {
   const sk = SKIN[p.form] || { body: "#F5821F", line: "#C4550A" };
 
   ctx.save();
-  if (p.invuln > 0) ctx.globalAlpha = Math.floor(t * 14) % 2 ? 0.4 : 1;
 
   // soft contact shadow
   ctx.save();
