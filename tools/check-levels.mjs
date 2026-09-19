@@ -18,10 +18,11 @@ const SPEED = num(/maxSpeed = sticky \? \d+ : (\d+)/);
 
 const rise = (v) => (v * v) / (2 * GRAVITY);
 const MAX_RISE = rise(JUMP_V) + rise(DOUBLE_V);
-// Only credit 80% of the theoretical peak. Discrete timesteps and imperfect
-// blob-bounce timing mean the engine delivers noticeably less than the ideal
-// arc, so budget below it rather than above.
-const SAFE_RISE = MAX_RISE * 0.8;
+// Budget the WORST case, not the best. Measured in-engine: a double jump with
+// the second hop pressed early climbs 214px against a 304px theoretical peak,
+// so credit 70%. Anything above that passes the checker and still fails for a
+// player who does not time the bounce perfectly.
+const SAFE_RISE = MAX_RISE * 0.70;
 
 // How far you can move horizontally while climbing `dy`. Climbing high eats the
 // airtime, so the reach shrinks as dy approaches the ceiling.
