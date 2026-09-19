@@ -1,7 +1,21 @@
-# Lamput
+# Lamput: Escape the Docs
 
-- **`mischief.html`** — the game. Full screen, no text, six levels.
-- **`index.html`** — the earlier chase platformer, kept for reference.
+**Play it: https://nookhbah.github.io/lamput-escape/**
+
+A browser platformer starring a shapeshifting orange blob. 15 wards, a boss
+fight, and four morph forms. Works on desktop (keyboard) and on phones
+(on-screen controls, landscape).
+
+- **`index.html`** — the game.
+- **`mischief.html`** — an abandoned puzzle prototype, kept for reference.
+
+## Running locally
+
+```
+node tools/serve.mjs
+```
+
+A no-cache dev server; a plain static server will hand you stale ES modules.
 
 ---
 
