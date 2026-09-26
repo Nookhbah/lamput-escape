@@ -3,7 +3,7 @@
 // Legend
 //   #  solid wall          =  one-way platform      .  empty
 //   P  Lamput spawn        E  escape hatch          o  goo orb
-//   1  Skinny Doc          2  Fat Doc               H  morph prop
+//   1  Skinny Doc          2  Spec                  H  morph prop
 //   ~  sticky goo (solid, slows you)                ^  zap-net hazard
 //   C  conveyor right      c  conveyor left
 //
@@ -166,8 +166,8 @@ export const LEVELS = [
   },
   {
     name: "Double Trouble",
-    hint: "Fat Doc joined the shift. He is slow, but his eyes are wide.",
-    unlock: "FAT DOC  ·  slower, but sees wider",
+    hint: "Spec joined the shift. He is slow, but his eyes are wide.",
+    unlock: "SPEC  ·  slower, but sees wider",
     par: 55, vision: 250, docSpeed: 0.95,
     grid: [
       "########################",
@@ -177,7 +177,7 @@ export const LEVELS = [
       "#.......========.......#",
       "#......................#",
       "#......................#",
-      "#..=====.......=====...#",
+      "#..=====........=====..#",
       "#......................#",
       "#.........o............#",
       "#.....==========.......#",
@@ -320,23 +320,23 @@ export const LEVELS = [
   },
   {
     name: "The Specimen Lab",
-    hint: "Everything at once, and three docs on the payroll. Get out, Lamput.",
+    hint: "Everything at once, and two docs on the payroll. Get out, Lamput.",
     unlock: "FINAL SHIFT  ·  everything, all at once",
     par: 120, vision: 300, docSpeed: 1.2,
     grid: [
       "########################",
-      "#..o....L.....L....o...#",
+      "#..o....L......L...o...#",
       "#.====...........====..#",
       "#......................#",
       "#.........|............#",
-      "#..=====.......=====...#",
+      "#..=====........=====..#",
       "#........o.............#",
       "#.o...CCCCCCC.......o..#",
       "#====...........-..====#",
       "#......................#",
       "#......o.....o.........#",
       "#.....===..............#",
-      "#.P...H^^^.1.2H^^^..1.E#",
+      "#.P...H^^^...2H^^^..1.E#",
       "########################",
     ],
   },

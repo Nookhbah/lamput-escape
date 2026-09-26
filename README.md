@@ -116,7 +116,7 @@ Each one introduces something new rather than just adding more enemies:
 
 1. **Wake Up, Goo** — movement and the double jump.
 2. **Hide and Sneak** — morphing into props.
-3. **Double Trouble** — Fat Doc joins: slower, but a much wider cone.
+3. **Double Trouble** — Spec joins: slower, but a much wider cone.
 4. **Goo Dash** — the dash, plus zap-nets on the floor.
 5. **Rise and Shine** — moving lifts that docs can ride too.
 6. **Sticky Situation** — sludge that slows anything standing on it; wall cling.

@@ -410,6 +410,21 @@ export class Game {
     d.x += moved;
   }
 
+  // `d` just touched `other`, who stands on side `side` (-1 left, 1 right).
+  bump(d, other, side) {
+    if (d.state === "chase") return;
+    if (other.state === "chase" && other.lastSeen) {
+      d.state = "chase";
+      d.alertTimer = other.alertTimer;
+      d.lastSeen = { ...other.lastSeen };
+      d.noticed = 0.8;
+      this.fx.text(d.cx, d.y - 16, "!", { color: "#ff4d6d", size: 30, life: 0.8 });
+    } else if (d.facing === side && d.turnCd <= 0) {
+      d.facing = -side;
+      d.turnCd = 0.3;
+    }
+  }
+
   updatePlay(dt) {
     const inp = this.input;
     const p = this.player;
@@ -450,8 +465,13 @@ export class Game {
         // the hitbox alone still renders as one four-legged doctor
         const gap = Math.abs(a.cx - b.cx), want = (a.w + b.w) / 2 + 24;
         if (gap >= want) continue;
-        const push = (want - gap) / 2;
         const dir = Math.sign(a.cx - b.cx) || 1;
+        // Bumping into a colleague: a chasing doc tips off the other, and an
+        // idle doc walking into them turns around. Otherwise two docs walking
+        // head-on cancel each other's shove and stand there forever.
+        this.bump(a, b, -dir);
+        this.bump(b, a, dir);
+        const push = (want - gap) / 2;
         this.shove(a, dir * push);
         this.shove(b, -dir * push);
       }
@@ -562,7 +582,7 @@ export class Game {
       }
       for (const d of this.docs) {
         if (p.overlaps(d)) {
-          this.onCaught(d.kind === "fat" ? "FAT DOC GOT YOU!" : "SKINNY DOC GOT YOU!");
+          this.onCaught(d.kind === "fat" ? "SPEC GOT YOU!" : "SKINNY DOC GOT YOU!");
           return;
         }
       }

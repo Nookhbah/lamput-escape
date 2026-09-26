@@ -94,7 +94,14 @@ export class Body {
   groundTile(world) {
     const r = Math.floor((this.y + this.h + 2) / TILE);
     const c = Math.floor((this.x + this.w / 2) / TILE);
-    return world.tile(c, r);
+    const ch = world.tile(c, r);
+    if (isSolid(ch) || isOneWay(ch)) return ch;
+    // Center is over a gap, so the body is balanced on an edge: what it stands
+    // on is the tile under whichever side still has footing. Reading the gap
+    // instead parked blobs at the end of a belt that should tip them off.
+    const right = world.tile(Math.floor((this.x + this.w - 1) / TILE), r);
+    if (isSolid(right) || isOneWay(right)) return right;
+    return world.tile(Math.floor(this.x / TILE), r);
   }
 }
 
@@ -313,6 +320,7 @@ export class Player extends Body {
 }
 
 // ---------------------------------------------------------------- doctors ---
+const MAX_DOC_RISE = 5 * TILE + 24; // px — a 5-tile floor-to-ledge climb plus slack
 export class Doctor extends Body {
   constructor(x, y, kind, cfg) {
     super(x, y, kind === "fat" ? 34 : 26, kind === "fat" ? 60 : 74);
@@ -352,8 +360,11 @@ export class Doctor extends Body {
     const dy = (player.cy) - (this.y + 18);
     const dist = Math.hypot(dx, dy);
     if (dist > this.range) return false;
-    // very close = heard/bumped, cone does not matter
-    if (dist > 52) {
+    // very close = heard/bumped, cone does not matter. An alerted doc also
+    // looks straight up, so hopping onto a ledge over their heads is not a
+    // hiding spot.
+    const overhead = this.state !== "patrol" && dy < 0 && Math.abs(dx) < 110;
+    if (dist > 52 && !overhead) {
       if (Math.sign(dx) !== this.facing && Math.abs(dx) > 14) return false;
       const ang = Math.abs(Math.atan2(dy, Math.abs(dx)));
       if (ang > this.cone) return false;
@@ -393,9 +404,16 @@ export class Doctor extends Body {
       this.vx = dir * this.chaseSpeed;
       if (dir !== 0) this.facing = dir;
       // hop over obstacles / chase upward
-      const wantJump = this.hitWall !== 0 || (this.lastSeen && this.lastSeen.y < this.y - 30 && Math.abs(tx - this.cx) < 90);
-      if (this.onGround && wantJump && this.jumpCd <= 0) {
-        this.vy = this.kind === "fat" ? -540 : -640;
+      const above = this.lastSeen && this.lastSeen.y < this.y - 30 && Math.abs(tx - this.cx) < 90;
+      if (this.onGround && (this.hitWall !== 0 || above) && this.jumpCd <= 0) {
+        let v = this.kind === "fat" ? 540 : 640;
+        if (above) {
+          // climb to the ledge Lamput is standing on: clear its top by a margin,
+          // capped at the same 5-tile climb the levels are built around
+          const rise = Math.min(MAX_DOC_RISE, this.y + this.h - (player.y + player.h) + 16);
+          v = Math.max(v, Math.sqrt(2 * GRAVITY * rise));
+        }
+        this.vy = -v;
         this.jumpCd = 0.7;
       }
     } else if (this.state === "search") {
